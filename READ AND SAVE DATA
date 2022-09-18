@@ -1,0 +1,228 @@
+'''
+Programa: READ AND SAVE DATA SET
+
+Proposito: Recepcion de datos de sensor MPU-6050
+para determinados casos de pruebas y guardar 
+el data set
+
+Programadores: Facundo Cosentino, Sergio Zelaya
+Fecha: 17/09/2022
+'''
+
+
+'''
+-------------------------------------
+Librerias a Utilizar 
+-------------------------------------
+'''
+#Libreria para manejo de Tiempos
+import time
+#Libreria para manejo de UART
+import serial
+#Libreria para manejo de arrays 
+import numpy as np
+#Libreria para hacer graficas
+import matplotlib.pyplot as plt   
+
+'''
+-------------------------------------
+Configuracion de comunicacion UART
+-------------------------------------
+'''
+def valpuerto():
+    #Elejimos el puerto y lo configuramos
+
+    portx='COM'
+    puertos=[]
+    comsok=[]
+    flagcont=0
+
+    for i in range (100):
+        ports = portx+str(i)
+        puertos.append(ports)
+
+    for port in puertos:
+        try:
+            ser = serial.Serial(port)
+            ser.close()
+            comsok.append(port)
+        except(OSError, FileNotFoundError):
+            pass
+        
+    while flagcont == 0:
+        print("------------------------------")
+        print("Seleccione puerto a conectarse")
+        print("------------------------------")
+
+        for i in range (len(comsok)):
+            print("Presionar: "+str(i)+" para "+comsok[i])
+            #print("Ingrese "+i+" para puerto "+ comsok(i))
+        print("\n")    
+        opt=int(input("Seleccione puerto: "))
+        
+        if opt < len(comsok):
+            flagcont = 1
+            
+        else:
+            print("Puerto no valido\n")
+            time.sleep(1)
+    comf=comsok[opt]
+    return comf
+
+'''
+-------------------------------------
+Declaracion de variable
+-------------------------------------
+'''
+#Cantidad de muestras
+#muestras=150
+
+#Bandera para controlar ciclos
+#de recoleccion de datos
+rp=1
+
+#Bandera para controlar ciclos
+#de opciones
+rs=1
+
+'''
+----------------------------------
+Funcion para descomponer String
+----------------------------------
+'''
+def descomponer(cadena): #ingresa cadena
+
+  #Remplazamos los 'b por ' '
+  cadena = cadena.replace("b'"," ")
+  #Remplazamos los ' por ' '
+  cadena = cadena.replace("'"," ")
+  #Remplazamos los \\n por ' '
+  cadena = cadena.replace("\\n"," ")
+  #Remplazamos los espacion en blanco
+  #logrando borrarlos de la cadena
+  cadena = cadena.replace(" " ,"")  
+
+  #convertimos este string en un entero                                  
+  return int(cadena)                
+
+'''
+------------------------------------
+Programa principal
+------------------------------------
+'''
+
+puerto = valpuerto()
+ser = serial.Serial()
+ser.port = puerto
+ser.baudrate = 9600
+ser.open()
+
+while True:
+    
+    muestras=input('Ingrese cantidad de muestras: ')
+    bmuestras=muestras+'\n'
+    bmuestras=bmuestras.encode()
+
+    ser.flushInput()  #Vaciamos el buffer serial
+
+    ser.write(bmuestras) #Mandamos cantidad
+                       #de muestra que queremos
+                       
+    muestras=int(muestras)
+  
+    entrada=input('Ingrese 1 para proceder: ')
+
+
+  
+    ser.write(b'1\n') #Mandamos una bandera para
+                    #saber que debe empezar
+                    #a transmitir datos
+
+    '''
+    -------------------------------------
+    Declaracion de variable en tiempo de
+    ejecucion
+    -------------------------------------
+    '''
+
+    #Array avacio para eje X, Y, Z
+    x = np.ones(muestras).reshape(muestras,1)    
+    y = np.ones(muestras).reshape(muestras,1)     
+    z = np.ones(muestras).reshape(muestras,1)
+
+    #Base de tiempo  
+    t = np.arange(0,muestras/10, 0.1, dtype=float)
+    t = t.reshape(muestras,1)
+    #Numero de muestras
+    tm=np.arange(0,muestras, 1, dtype=float)
+    tm=tm.reshape(muestras,1)
+  
+    if(entrada == '1'):
+        #Iteramos la cantidad de muestras
+        for i in range(muestras):
+            #Leemos el puerto serie
+            dato = ser.readline()
+            #convertimos el dato typo byte
+            #en un tipo string
+            cadena = str(dato)                    
+
+            #separamos los datos X Y Z                                     
+            ex,ey,ez = cadena.split(sep=',')      
+
+            #--- Convertimos X Y Z a tipo int ---
+        
+            cadena=str(ex)                                                                   
+            ex = descomponer(cadena)
+            cadena=str(ey)                                                               
+            ey = descomponer(cadena)
+            cadena=str(ez)                                                     
+            ez = descomponer(cadena)
+
+            #---Armamos los arreglos ---
+            x[i,0]=ex/100   #Armamos el arreglo X
+            y[i,0]=ey/100   #Armamos el arreglo Y
+            z[i,0]=ez/100   #Armamos el arreglo Z
+
+        '''
+        ------------------------------------
+        Armamos y guardamos el data set
+        ------------------------------------
+        '''
+        dataset = np.concatenate((x, y,z), axis=1)
+        print(dataset)
+
+        '''
+        ------------------------------------
+        Control de flujo del programa
+        ------------------------------------
+        '''
+        rs=1
+        while rs==1:
+            print("\n")
+            print("------------------------------")
+            print("Selecionar como proceder")
+            print("------------------------------")
+            print("\n")
+            print("1 para volver a crear un dataset")
+            print("0 para salir")
+
+            a=int(input("ingrese opcion: "))
+
+            if a==0 or a==1:
+                rs=0
+                if a == 0:
+                    rp=0
+                else:
+                    rp=1
+            else:
+                print("Opcion no valida")
+                rs=1    
+    else:
+        #programa cancelado
+        print('Programa Cancelado')
+        break
+    
+    if (rp==0):
+        break
+
+print("Programa Terminado")
