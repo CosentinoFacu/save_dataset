@@ -1,0 +1,97 @@
+'''
+Programa: PYTHON-MADE-DATASET
+
+Programadores: Facundo Cosentino, Sergio Zelaya
+Fecha: 2/08/2022
+
+Rectificacion: de "PLOT-PYTHON" para enviar
+cantidad de muestras por puerto serie.
+
+Fecha: 11/09/2022
+
+'''
+
+#Importamos MPU_6050 de imu
+from imu import MPU6050
+#Importamos time para los delay
+import time
+#Importamos Pin e I2C de machine
+from machine import Pin, I2C, UART  
+
+
+#Configuramos comunicacion I2C 
+I2c = I2C(0,sda=Pin(21),scl=Pin(22),freq=400000)
+#Configuramos MPU6050
+imu = MPU6050(I2c)                                  
+#Configuracion UART 9600baudios y el modulo 2
+uart= UART(2,9600)                                  
+
+#Variable para guardar el tiempo anterior
+tiempoant=0
+#Variable para controlar la cantidad de muestras
+nmuestras=0
+#Variable para contar el numero de muestras
+muestras=0
+#Variable para guardar la trama
+trama=' '                                           
+
+while True:
+    
+    #Esperamos una cantidad de muestras deseadas
+    nmuestras = uart.readline()
+    while nmuestras == None:
+        nmuestras = uart.readline()
+        time.sleep(1)
+    #convertimos la nmuestras de byte a str y luego a int
+    nmuestras = int(nmuestras)
+
+    #Esperamos una bandera para empezar a enviar datos
+    flag = uart.readline()
+    while flag == None:
+        flag = uart.readline()
+        time.sleep(1)
+        
+    #convertimos la bandera de byte a str y luego a int
+    flag = int(flag)
+    
+    #inicializamos las muestras en 0
+    muestras=0
+    
+    #leeremos 150 muestras luego de tener
+    #la bandera en '1'
+    while flag == 1 and muestras<=nmuestras:
+        #Medimos el tiempo en el que estamos
+        tiempoact = time.ticks_ms()          
+        
+        #Vemos si ya paso 100ms entre la ultima medida
+        if(tiempoact-tiempoant >= 100):
+            #Actualizamos el tiempo
+            tiempoant = time.ticks_ms()      
+        
+            #Leemos Aceleracion en X
+            Gx = imu.accel.x-0.06112061
+    
+            #Leemos Aceleracion en Y
+            Gy = imu.accel.y+0.03150146
+    
+            #Leemos Aceleracion en Z
+            Gz = imu.accel.z+0.07965576
+            
+            #Damos formato al dato
+            datax = str(int(Gx*100))          
+            datay = str(int(Gy*100))          
+            dataz = str(int(Gz*100))          
+            
+            #Armamos la trama de datos
+            trama=datax+','+datay+','+dataz       
+            #Enviamos Trama de dato
+            uart.write(trama)                     
+            #Enviamos salto de linea
+            uart.write('\n')
+            
+            #Imprimimos el numero de muestras 
+            print(muestras)
+            
+            #Incrementamos el numero de
+            #muestras recibidas
+            muestras = muestras + 1        
