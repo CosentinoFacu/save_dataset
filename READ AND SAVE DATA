@@ -26,6 +26,23 @@ import matplotlib.pyplot as plt
 
 '''
 -------------------------------------
+Declaracion de variable
+-------------------------------------
+'''
+#Cantidad de muestras
+#muestras=150
+
+#Bandera para controlar ciclos
+#de recoleccion de datos
+rp=1
+
+#Bandera para controlar ciclos
+#de opciones
+rs=1
+
+
+'''
+-------------------------------------
 Configuracion de comunicacion UART
 -------------------------------------
 '''
@@ -56,7 +73,6 @@ def valpuerto():
 
         for i in range (len(comsok)):
             print("Presionar: "+str(i)+" para "+comsok[i])
-            #print("Ingrese "+i+" para puerto "+ comsok(i))
         print("\n")    
         opt=int(input("Seleccione puerto: "))
         
@@ -71,19 +87,26 @@ def valpuerto():
 
 '''
 -------------------------------------
-Declaracion de variable
+Validacion del nombre de dataset
 -------------------------------------
 '''
-#Cantidad de muestras
-#muestras=150
+def validardato():
 
-#Bandera para controlar ciclos
-#de recoleccion de datos
-rp=1
-
-#Bandera para controlar ciclos
-#de opciones
-rs=1
+    rt=1
+    
+    while (rt==1):
+        print("\n")
+        nombre = input("Ingrese Nombre: ")
+        
+        try:
+            ndataset = np.load(nombre+'.npy')
+            rt=0
+            print("Exito")
+            return(nombre)
+        except(OSError,FileNotFoundError):
+            print("El datasrt "+nombre+" no exite")
+            print("Intente de nuevo")
+    
 
 '''
 ----------------------------------
@@ -118,6 +141,12 @@ ser.baudrate = 9600
 ser.open()
 
 while True:
+
+    print("\n")
+    print("------------------------------")
+    print("Inicio de programa")
+    print("------------------------------")
+    print("\n")
     
     muestras=input('Ingrese cantidad de muestras: ')
     bmuestras=muestras+'\n'
@@ -129,7 +158,10 @@ while True:
                        #de muestra que queremos
                        
     muestras=int(muestras)
-  
+
+    print("\n")
+    out=int(input('dato a etiquetar: '))
+    print("\n")  
     entrada=input('Ingrese 1 para proceder: ')
 
 
@@ -149,6 +181,9 @@ while True:
     x = np.ones(muestras).reshape(muestras,1)    
     y = np.ones(muestras).reshape(muestras,1)     
     z = np.ones(muestras).reshape(muestras,1)
+
+    #Array avacio para etiqueta
+    aout = np.ones(muestras).reshape(muestras,1)
 
     #Base de tiempo  
     t = np.arange(0,muestras/10, 0.1, dtype=float)
@@ -182,13 +217,23 @@ while True:
             x[i,0]=ex/100   #Armamos el arreglo X
             y[i,0]=ey/100   #Armamos el arreglo Y
             z[i,0]=ez/100   #Armamos el arreglo Z
+            aout[i,0]=out   #Armamos la etiquetas
 
         '''
         ------------------------------------
-        Armamos y guardamos el data set
+        Armamos y guardamos un data set
         ------------------------------------
         '''
-        dataset = np.concatenate((x, y,z), axis=1)
+        print("\n")
+        print("------------------------------")
+        print("Guardamos el dataset parcial")
+        print("------------------------------")
+        print("\n")
+
+        
+        dataset = np.concatenate((x, y, z,aout), axis=1)
+        nombre=input("Ingresar nombre del conjunto de datos: ")
+        np.save(nombre, dataset)
         print(dataset)
 
         '''
@@ -218,11 +263,48 @@ while True:
                 print("Opcion no valida")
                 rs=1    
     else:
-        #programa cancelado
-        print('Programa Cancelado')
         break
     
     if (rp==0):
         break
 
+'''
+------------------------------------
+Armamos y guardamos el data set
+deseado para la aplicacion
+------------------------------------
+'''
+    
+if entrada == '1':
+
+    print("\n")
+    print("------------------------------")
+    print("Armamos del dataset total")
+    print("------------------------------")
+    print("\n")
+    cantds=input("Ingrese la cantidad de dataset: ")
+    cantds=int(cantds)
+    tds = np.ones([muestras*cantds,4])
+    for i in range (cantds):
+        nameds=validardato()
+        ndataset = np.load(nameds+'.npy')
+        for k in range (4):
+            for j in range (muestras):
+                tds[j+(muestras*i),k]=ndataset[j,k]
+                
+    np.save("Data set Total",tds)
+    print(tds)
+
+        
+
+'''
+------------------------------------
+Letreros de fin de progroma
+------------------------------------
+'''
+
+print("\n")
+print("------------------------------")
 print("Programa Terminado")
+print("------------------------------")
+print("\n")
